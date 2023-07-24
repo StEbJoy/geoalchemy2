@@ -304,7 +304,7 @@ def add_geospatial_column(operations, operation):
                 not geospatial_core_type.nullable,
             )
         )
-    elif "postgresql" in dialect.name:
+    elif dialect.name in ["mysql", "postgresql"]:
         operations.impl.add_column(
             table_name,
             operation.column,
@@ -736,13 +736,14 @@ def create_geo_index(context, revision, op):
         if isinstance(col, Column) and _check_spatial_type(
             col.type, (Geometry, Geography, Raster), dialect
         ):
-            # Fix index properties
-            op.kw["postgresql_using"] = op.kw.get("postgresql_using", "gist")
-            if col.type.use_N_D_index:
-                postgresql_ops = {col.name: "gist_geometry_ops_nd"}
-            else:
-                postgresql_ops = {}
-            op.kw["postgresql_ops"] = op.kw.get("postgresql_ops", postgresql_ops)
+            if dialect.name == "postgresql":
+                # Fix index properties
+                op.kw["postgresql_using"] = op.kw.get("postgresql_using", "gist")
+                if col.type.use_N_D_index:
+                    postgresql_ops = {col.name: "gist_geometry_ops_nd"}
+                else:
+                    postgresql_ops = {}
+                op.kw["postgresql_ops"] = op.kw.get("postgresql_ops", postgresql_ops)
 
             return CreateGeospatialIndexOp(
                 op.index_name,
@@ -767,6 +768,9 @@ def drop_geo_index(context, revision, op):
         if isinstance(col, Column) and _check_spatial_type(
             col.type, (Geometry, Geography, Raster), dialect
         ):
+            if dialect.name == "postgresql":
+                op.kw["postgresql_using"] = op.kw.get("postgresql_using", "gist")
+
             return DropGeospatialIndexOp(
                 op.index_name,
                 table_name=op.table_name,

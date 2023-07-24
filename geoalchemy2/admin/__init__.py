@@ -77,7 +77,6 @@ def setup_ddl_event_listeners():
             pass
 
         kwargs = {
-            "postgresql_using": "gist",
             "_column_flag": True,
         }
         col = column
